@@ -18,16 +18,7 @@ public class WebCrawler implements Runnable {
     private ArrayList<String> visitedLinks = new ArrayList<String>();
     private long ID;
     String connectionUrl = "jdbc:postgresql://localhost:5432/webcrawler";
-
-    java.sql.Connection conn;
-    {
-        try {
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
-
+    java.sql.Connection conn = null;
 
     public WebCrawler(String link, int num) {
         System.out.println();
@@ -40,33 +31,45 @@ public class WebCrawler implements Runnable {
 
     @Override
     public void run() {
-        crawl(1, first_link);
+
+        try {
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
+        crawl(first_link);
+
+        try {
+            conn.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
     }
 
-    private void crawl(int level, String url) {
-        if (level <= MAX_DEPTH) {
-                    try {
-                        String query = "SELECT * FROM records where url LIKE ?";
-                        PreparedStatement pstmt = conn.prepareStatement(query);
-                        pstmt.setString(1,"%"+url+"%");
-                        ResultSet rs = pstmt.executeQuery();
 
-                        if (rs.next() == false) {
-                            request(url);
-                        } else {
-                            do {
-                                printCrawler(rs.getLong(1), rs.getString(2),
-                                        rs.getString(3), rs.getString(4));
-                            }
-                                while(rs.next());
-                        }
-                        conn.close();
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
+    private void crawl(String url) {
+            try {
+                String query = "SELECT * FROM records where url LIKE ?";
+                PreparedStatement pstmt = conn.prepareStatement(query);
+                pstmt.setString(1,"%"+url+"%");
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next() != false) {
+                    do {
+                        printCrawler(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4));
                     }
+                    while(rs.next());
+                } else {
+
+                    int level = 1;
+                    request(level, url);
+
                 }
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+    }
 
     private void printCrawler(Long id, String url, String title, String text) {
         System.out.println("\n**Crawler " + id + ": Received webpage at " + url);
@@ -74,7 +77,7 @@ public class WebCrawler implements Runnable {
         System.out.println(text); // text extracting
     }
 
-    private Document request(String url) {
+    private void request(int level, String url) {
         try {
                 Connection con = Jsoup.connect(url);
                 Document doc = con.get();
@@ -84,8 +87,6 @@ public class WebCrawler implements Runnable {
                     String text = doc.body().text();
 
                     printCrawler(ID, url, title, text);
-
-                    //visitedLinks.add(url);
                     sleep(3); // niceness delay
 
                     String query = "INSERT INTO records (url, website_title, crawled_text) VALUES(?,?,?)";
@@ -95,15 +96,20 @@ public class WebCrawler implements Runnable {
                     pstmt.setString(3, text);
 
                     pstmt.executeUpdate();
+                    //if (level <= MAX_DEPTH) {
+                        for (Element link : doc.select("a[href]")) {
+                            String next_link = link.absUrl("href");
+                            request(level++, next_link);
+                        }
+                    }
 
-                    return doc;
-                }
+                //}
             } 
             
             catch (Exception e) {
                 e.printStackTrace();
             }
-        return null;
+
     }
 
     public Thread getThread() {
