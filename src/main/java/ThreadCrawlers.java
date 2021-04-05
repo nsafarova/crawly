@@ -8,8 +8,8 @@ public class ThreadCrawlers {
         ArrayList<WebCrawler> crawlers = new ArrayList<>();
         System.out.print("Enter the URls (e.g. url1 url2 url3): ");
         crawlers.add(new WebCrawler(sc.next(), 1));
-        //crawlers.add(new WebCrawler(sc.next(), 2));
-        //crawlers.add(new WebCrawler(sc.next(), 3));
+        crawlers.add(new WebCrawler(sc.next(), 2));
+        crawlers.add(new WebCrawler(sc.next(), 3));
 
         /*
         crawlers.add(new WebCrawler("https://www.nytimes.com/", 1));

@@ -45,21 +45,20 @@ public class WebCrawler implements Runnable {
 
     private void crawl(int level, String url) {
         if (level <= MAX_DEPTH) {
-            Document doc = request(url);
-
-            if (doc != null) {
-                for(Element link : doc.select("a[href]")) {
-                    String next_link = link.absUrl("href");
                     try {
                         String query = "SELECT * FROM records where url LIKE ?";
                         PreparedStatement pstmt = conn.prepareStatement(query);
                         pstmt.setString(1,"%"+url+"%");
                         ResultSet rs = pstmt.executeQuery();
-                        if (rs != null) {
-                            while(rs.next()){
-                                printCrawler(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4));}
+
+                        if (rs.next() == false) {
+                            request(url);
                         } else {
-                            crawl(level++, next_link);
+                            do {
+                                printCrawler(rs.getLong(1), rs.getString(2),
+                                        rs.getString(3), rs.getString(4));
+                            }
+                                while(rs.next());
                         }
                         conn.close();
 
@@ -68,8 +67,6 @@ public class WebCrawler implements Runnable {
                     }
                 }
             }
-        }
-    }
 
     private void printCrawler(Long id, String url, String title, String text) {
         System.out.println("\n**Crawler " + id + ": Received webpage at " + url);
