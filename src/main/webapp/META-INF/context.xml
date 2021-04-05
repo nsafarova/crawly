@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context>
+
+    <Resource name="jdbc/user_datasource" auth="Container" type="javax.sql.DataSource"
+              maxTotal="5" maxIdle="2" maxWaitMillis="10000" username="postgres" password=""
+              driverClassName="org.postgresql.Driver" url="jdbc:postgresql://localhost:5432/webcrawler"/>
+
+</Context>
