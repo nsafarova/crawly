@@ -30,7 +30,7 @@ public class WebCrawler implements Runnable {
     public void run() {
 
         try {
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "1234");
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }

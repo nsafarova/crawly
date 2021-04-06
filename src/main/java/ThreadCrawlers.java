@@ -10,12 +10,7 @@ public class ThreadCrawlers {
         crawlers.add(new WebCrawler(sc.next(), 1));
         crawlers.add(new WebCrawler(sc.next(), 2));
         crawlers.add(new WebCrawler(sc.next(), 3));
-
-        /*
-        crawlers.add(new WebCrawler("https://www.nytimes.com/", 1));
-        crawlers.add(new WebCrawler("https://medium.com/", 2));
-        crawlers.add(new WebCrawler("https://www.investopedia.com/", 3));
-        */
+        
 
         for (WebCrawler w : crawlers) {
             try {
