@@ -3,12 +3,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
-
+import java.util.Date;
 
 
 public class WebCrawler implements Runnable {
@@ -33,7 +30,7 @@ public class WebCrawler implements Runnable {
     public void run() {
 
         try {
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "1234");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
@@ -56,7 +53,7 @@ public class WebCrawler implements Runnable {
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next() != false) {
                     do {
-                        printCrawler(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4));
+                        printCrawler(ID, rs.getString(2), rs.getString(3), rs.getString(4));
                     }
                     while(rs.next());
                 } else {
@@ -87,23 +84,29 @@ public class WebCrawler implements Runnable {
                     String text = doc.body().text();
 
                     printCrawler(ID, url, title, text);
+                    visitedLinks.add(url);
                     sleep(3); // niceness delay
 
-                    String query = "INSERT INTO records (url, website_title, crawled_text) VALUES(?,?,?)";
+                    String query = "INSERT INTO records (url, website_title, crawled_text, record_date, crawled_text_size, url_depth) VALUES(?,?,?,?,?,?)";
                     PreparedStatement pstmt = conn.prepareStatement(query);
                     pstmt.setString(1, url);
                     pstmt.setString(2, title);
                     pstmt.setString(3, text);
+                    pstmt.setString(4, new Date().toString());
+                    pstmt.setLong(5, text.length());
+                    pstmt.setLong(6, level);
 
                     pstmt.executeUpdate();
-                    //if (level <= MAX_DEPTH) {
+                    if (level <= MAX_DEPTH) {
                         for (Element link : doc.select("a[href]")) {
                             String next_link = link.absUrl("href");
-                            request(level++, next_link);
+                            if (!visitedLinks.contains(next_link)) {
+                                request(level++, next_link);
+                            }
                         }
                     }
 
-                //}
+                }
             } 
             
             catch (Exception e) {
