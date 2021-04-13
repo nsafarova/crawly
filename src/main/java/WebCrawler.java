@@ -84,6 +84,7 @@ public class WebCrawler implements Runnable {
                     String text = doc.body().text();
 
                     printCrawler(ID, url, title, text);
+                    System.out.println("level " + level);
                     visitedLinks.add(url);
                     sleep(2); // niceness delay
 
@@ -97,7 +98,7 @@ public class WebCrawler implements Runnable {
                     pstmt.setLong(6, level);
 
                     pstmt.executeUpdate();
-                    if (level <= MAX_DEPTH) {
+                    if (level <= 3) {
                         for (Element link : doc.select("a[href]")) {
                             String next_link = link.absUrl("href");
                             if (!visitedLinks.contains(next_link)) {
@@ -105,14 +106,12 @@ public class WebCrawler implements Runnable {
                             }
                         }
                     }
-
                 }
             } 
             
             catch (Exception e) {
                 e.printStackTrace();
             }
-
     }
 
     public Thread getThread() {
