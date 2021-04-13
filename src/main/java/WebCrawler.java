@@ -76,7 +76,7 @@ public class WebCrawler implements Runnable {
 
     private void request(int level, String url) {
         try {
-                Connection con = Jsoup.connect(url);
+                Connection con = Jsoup.connect(url).ignoreContentType(true);
                 Document doc = con.get();
 
                 if (con.response().statusCode() == 200) {
@@ -85,7 +85,7 @@ public class WebCrawler implements Runnable {
 
                     printCrawler(ID, url, title, text);
                     visitedLinks.add(url);
-                    sleep(3); // niceness delay
+                    sleep(2); // niceness delay
 
                     String query = "INSERT INTO records (url, website_title, crawled_text, record_date, crawled_text_size, url_depth) VALUES(?,?,?,?,?,?)";
                     PreparedStatement pstmt = conn.prepareStatement(query);
