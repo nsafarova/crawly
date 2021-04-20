@@ -92,7 +92,7 @@ public class WebCrawler implements Runnable {
                  OutputStreamWriter osw = new OutputStreamWriter(fos,
                          StandardCharsets.UTF_8)) {
 
-                cm.copyOut("COPY records TO STDOUT WITH (FORMAT CSV)", osw);
+                cm.copyOut("COPY records (url, website_title, crawled_text, record_date, crawled_text_size, url_depth) TO STDOUT WITH CSV HEADER", osw);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
