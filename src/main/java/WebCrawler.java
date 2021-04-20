@@ -2,7 +2,14 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.postgresql.copy.CopyManager;
+import org.postgresql.core.BaseConnection;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,10 +17,10 @@ import java.util.Date;
 
 public class WebCrawler implements Runnable {
     private static final int MAX_DEPTH = 3;
-    private Thread thread;
-    private String first_link;
-    private ArrayList<String> visitedLinks = new ArrayList<String>();
-    private long ID;
+    private final Thread thread;
+    private final String first_link;
+    private final ArrayList<String> visitedLinks = new ArrayList<String>();
+    private final long ID;
     String connectionUrl = "jdbc:postgresql://localhost:5432/webcrawler";
     java.sql.Connection conn = null;
 
@@ -24,7 +31,8 @@ public class WebCrawler implements Runnable {
 
         thread = new Thread(this);
         thread.start();
-    }
+
+        }
 
     @Override
     public void run() {
@@ -72,6 +80,28 @@ public class WebCrawler implements Runnable {
         System.out.println("\n**Crawler " + id + ": Received webpage at " + url);
         System.out.println(title);
         System.out.println(text); // text extracting
+
+        try {
+
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+            CopyManager cm = new CopyManager((BaseConnection) conn);
+
+            String fileName = "src/main/resources/records.csv";
+
+            try (FileOutputStream fos = new FileOutputStream(fileName);
+                 OutputStreamWriter osw = new OutputStreamWriter(fos,
+                         StandardCharsets.UTF_8)) {
+
+                cm.copyOut("COPY records TO STDOUT WITH (FORMAT CSV)", osw);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
     }
 
     private void request(int level, String url) {
@@ -98,7 +128,7 @@ public class WebCrawler implements Runnable {
                     pstmt.setLong(6, level);
 
                     pstmt.executeUpdate();
-                    if (level <= 3) {
+                    if (level <= MAX_DEPTH) {
                         for (Element link : doc.select("a[href]")) {
                             String next_link = link.absUrl("href");
                             if (!visitedLinks.contains(next_link)) {
@@ -107,12 +137,14 @@ public class WebCrawler implements Runnable {
                         }
                     }
                 }
-            } 
-            
+        }
+
             catch (Exception e) {
                 e.printStackTrace();
             }
     }
+
+
 
     public Thread getThread() {
         return thread;
@@ -120,11 +152,12 @@ public class WebCrawler implements Runnable {
 
     protected void sleep(int seconds) {
         try {
-            Thread.sleep(seconds * 1000);
+            Thread.sleep(seconds * 1000L);
         }
         catch (InterruptedException e) {
             e.getMessage();
         }
     }
+
 
 }
