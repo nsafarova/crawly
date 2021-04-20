@@ -5,10 +5,9 @@ import org.jsoup.nodes.Element;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
@@ -22,9 +21,9 @@ public class WebCrawler implements Runnable {
     private final ArrayList<String> visitedLinks = new ArrayList<String>();
     private final long ID;
     String connectionUrl = "jdbc:postgresql://localhost:5432/webcrawler";
-    java.sql.Connection conn = null;
+    java.sql.Connection conn = DriverManager.getConnection(connectionUrl, "postgres", "");
 
-    public WebCrawler(String link, int num) {
+    public WebCrawler(String link, int num) throws SQLException {
         System.out.println();
         first_link = link;
         ID = num;
@@ -43,6 +42,11 @@ public class WebCrawler implements Runnable {
             throwables.printStackTrace();
         }
 
+        try {
+            seedURL(first_link);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
         crawl(first_link);
 
         try {
@@ -50,6 +54,16 @@ public class WebCrawler implements Runnable {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+    }
+
+    private void seedURL(String url) throws SQLException {
+        String query = "INSERT INTO repository (seed_url, is_crawled, date_and_time) VALUES(?,?,?)";
+        PreparedStatement pstmt = conn.prepareStatement(query);
+        pstmt.setString(1, url);
+        pstmt.setBoolean(2, false);
+        pstmt.setString(3, new Date().toString());
+
+        pstmt.executeUpdate();
     }
 
 
@@ -83,7 +97,7 @@ public class WebCrawler implements Runnable {
 
         try {
 
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+            //conn = DriverManager.getConnection(connectionUrl, "postgres", "");
             CopyManager cm = new CopyManager((BaseConnection) conn);
 
             String fileName = "src/main/resources/records.csv";
@@ -144,7 +158,82 @@ public class WebCrawler implements Runnable {
             }
     }
 
+    /*
+    public static boolean robotSafe(URL url)
+    {
+        String strHost = url.getHost();
 
+        String strRobot = "http://" + strHost + "/robots.txt";
+        URL urlRobot;
+        try { urlRobot = new URL(strRobot);
+        } catch (MalformedURLException e) {
+            // something weird is happening, so don't trust it
+            return false;
+        }
+
+        String strCommands;
+        try
+        {
+            InputStream urlRobotStream = urlRobot.openStream();
+            byte b[] = new byte[1000];
+            int numRead = urlRobotStream.read(b);
+            strCommands = new String(b, 0, numRead);
+            while (numRead != -1) {
+                numRead = urlRobotStream.read(b);
+                if (numRead != -1)
+                {
+                    String newCommands = new String(b, 0, numRead);
+                    strCommands += newCommands;
+                }
+            }
+            urlRobotStream.close();
+        }
+        catch (IOException e)
+        {
+            return true; // if there is no robots.txt file, it is OK to search
+        }
+
+        if (strCommands.contains(DISALLOW)) // if there are no "disallow" values, then they are not blocking anything.
+        {
+            String[] split = strCommands.split("\n");
+            ArrayList<RobotRule> robotRules = new ArrayList<>();
+            String mostRecentUserAgent = null;
+            for (int i = 0; i < split.length; i++)
+            {
+                String line = split[i].trim();
+                if (line.toLowerCase().startsWith("user-agent"))
+                {
+                    int start = line.indexOf(":") + 1;
+                    int end   = line.length();
+                    mostRecentUserAgent = line.substring(start, end).trim();
+                }
+                else if (line.startsWith(DISALLOW)) {
+                    if (mostRecentUserAgent != null) {
+                        RobotRule r = new RobotRule();
+                        r.userAgent = mostRecentUserAgent;
+                        int start = line.indexOf(":") + 1;
+                        int end   = line.length();
+                        r.rule = line.substring(start, end).trim();
+                        robotRules.add(r);
+                    }
+                }
+            }
+
+            for (RobotRule robotRule : robotRules)
+            {
+                String path = url.getPath();
+                if (robotRule.rule.length() == 0) return true; // allows everything if BLANK
+                if (robotRule.rule == "/") return false;       // allows nothing if /
+
+                if (robotRule.rule.length() <= path.length())
+                {
+                    String pathCompare = path.substring(0, robotRule.rule.length());
+                    if (pathCompare.equals(robotRule.rule)) return false;
+                }
+            }
+        }
+        return true;
+    } */
 
     public Thread getThread() {
         return thread;
