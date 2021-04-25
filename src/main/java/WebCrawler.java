@@ -19,7 +19,7 @@ public class WebCrawler implements Runnable {
     private final ArrayList<String> visitedLinks = new ArrayList<String>();
     private final long ID;
     String connectionUrl = "jdbc:postgresql://localhost:5432/webcrawler";
-    java.sql.Connection conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+    java.sql.Connection conn = null;
 
     public WebCrawler(String link, int num) throws SQLException {
         System.out.println();
@@ -35,16 +35,11 @@ public class WebCrawler implements Runnable {
     public void run() {
 
         try {
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "1234");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
 
-        try {
-            seedURL(first_link);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
         crawl(first_link);
 
         try {
@@ -52,16 +47,6 @@ public class WebCrawler implements Runnable {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
-    }
-
-    private void seedURL(String url) throws SQLException {
-        String query = "INSERT INTO repository (seed_url, is_crawled, date_and_time) VALUES(?,?,?)";
-        PreparedStatement pstmt = conn.prepareStatement(query);
-        pstmt.setString(1, url);
-        pstmt.setBoolean(2, false);
-        pstmt.setString(3, new Date().toString());
-
-        pstmt.executeUpdate();
     }
 
 
@@ -95,7 +80,6 @@ public class WebCrawler implements Runnable {
 
         try {
 
-            //conn = DriverManager.getConnection(connectionUrl, "postgres", "");
             CopyManager cm = new CopyManager((BaseConnection) conn);
 
             String fileName = "src/main/resources/records.csv";
@@ -126,7 +110,6 @@ public class WebCrawler implements Runnable {
                     String text = doc.body().text();
 
                     printCrawler(ID, url, title, text);
-                    System.out.println("level " + level);
                     visitedLinks.add(url);
                     sleep(2); // niceness delay
 
@@ -143,8 +126,17 @@ public class WebCrawler implements Runnable {
                     if (level <= MAX_DEPTH) {
                         for (Element link : doc.select("a[href]")) {
                             String next_link = link.absUrl("href");
-                            if (!visitedLinks.contains(next_link)) {
-                                request(level++, next_link);
+                            if(next_link.length()>0) {
+                                if (!visitedLinks.contains(next_link)) {
+                                    request(level++, next_link);
+                                }
+                            } else{
+                                String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
+                                PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                                updateStmt.setBoolean(1, true);
+                                System.out.println(first_link);
+                                updateStmt.setString(2, first_link);
+                                updateStmt.executeUpdate();
                             }
                         }
                     }
