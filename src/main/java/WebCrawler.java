@@ -57,26 +57,27 @@ public class WebCrawler implements Runnable {
                 pstmt.setString(1,"%"+url+"%");
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next() != false) {
+                    System.out.println("Found previous crawl records of '" + url +"'. Printing them...");
                     do {
-                        printCrawler(ID, rs.getString(2), rs.getString(3), rs.getString(4));
+                        printCrawler(ID, rs.getString("url"), rs.getString("website_title"), rs.getString("crawled_text"), rs.getString("record_date"));
+                        visitedLinks.add(rs.getString("url"));
                     }
                     while(rs.next());
-                } else {
-
-                    int level = 1;
-                    request(level, url);
-
                 }
+
+                int level = 1;
+                request(level, url);
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
     }
 
-    private void printCrawler(Long id, String url, String title, String text) {
+    private void printCrawler(Long id, String url, String title, String text, String date) {
         System.out.println("\n**Crawler " + id + ": Received webpage at " + url);
         System.out.println(title);
         System.out.println(text); // text extracting
+        System.out.println(date);
 
         try {
 
@@ -109,7 +110,8 @@ public class WebCrawler implements Runnable {
                     String title = doc.title();
                     String text = doc.body().text();
 
-                    printCrawler(ID, url, title, text);
+                    String crawlTime = new Date().toString();
+                    printCrawler(ID, url, title, text, crawlTime);
                     visitedLinks.add(url);
                     sleep(2); // niceness delay
 
@@ -118,7 +120,7 @@ public class WebCrawler implements Runnable {
                     pstmt.setString(1, url);
                     pstmt.setString(2, title);
                     pstmt.setString(3, text);
-                    pstmt.setString(4, new Date().toString());
+                    pstmt.setString(4, crawlTime);
                     pstmt.setLong(5, text.length());
                     pstmt.setLong(6, level);
 
