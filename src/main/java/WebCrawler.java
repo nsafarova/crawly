@@ -43,20 +43,35 @@ public class WebCrawler implements Runnable {
         crawl(first_link);
 
         try {
+            saveAsCrawled(first_link);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
+        try {
             conn.close();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
     }
 
+    private void saveAsCrawled(String url) throws SQLException {
+        String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
+        PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+        updateStmt.setBoolean(1, true);
+        updateStmt.setString(2, url);
+        updateStmt.executeUpdate();
+    }
 
     private void crawl(String url) {
             try {
+                boolean newLink = true;
                 String query = "SELECT * FROM records where url LIKE ?";
                 PreparedStatement pstmt = conn.prepareStatement(query);
                 pstmt.setString(1,"%"+url+"%");
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next() != false) {
+                    newLink = false;
                     System.out.println("Found previous crawl records of '" + url +"'. Printing them...");
                     do {
                         printCrawler(ID, rs.getString("url"), rs.getString("website_title"), rs.getString("crawled_text"), rs.getString("record_date"));
@@ -66,7 +81,7 @@ public class WebCrawler implements Runnable {
                 }
 
                 int level = 1;
-                request(level, url);
+                request(level, url, newLink);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -101,11 +116,12 @@ public class WebCrawler implements Runnable {
         }
     }
 
-    private void request(int level, String url) {
+    private void request(int level, String url, boolean isNewLink) {
         try {
                 Connection con = Jsoup.connect(url).ignoreContentType(true);
                 Document doc = con.get();
 
+            if(isNewLink) {
                 if (con.response().statusCode() == 200) {
                     String title = doc.title();
                     String text = doc.body().text();
@@ -125,21 +141,16 @@ public class WebCrawler implements Runnable {
                     pstmt.setLong(6, level);
 
                     pstmt.executeUpdate();
-                    if (level <= MAX_DEPTH) {
-                        for (Element link : doc.select("a[href]")) {
-                            String next_link = link.absUrl("href");
-                            if(next_link.length()>0) {
-                                if (!visitedLinks.contains(next_link)) {
-                                    request(level++, next_link);
-                                }
+                }
+            }
+                if (level <= MAX_DEPTH) {
+                    for (Element link : doc.select("a[href]")) {
+                        String next_link = link.absUrl("href");
+                        if(next_link.length()>0) {
+                            if (!visitedLinks.contains(next_link)) {
+                                request(level++, next_link, true);
                             }
                         }
-                        String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
-                        PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
-                        updateStmt.setBoolean(1, true);
-                        System.out.println(first_link);
-                        updateStmt.setString(2, first_link);
-                        updateStmt.executeUpdate();
                     }
                 }
         }
