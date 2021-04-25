@@ -27,7 +27,7 @@ public class addToRepository {
                 pstmt2.setString(3, new Date().toString());
                 pstmt2.executeUpdate();
             } else{
-                System.out.println("This URL is already in the repository. Crawling...");
+                System.out.println("'" + s + "' is already in the repository. Crawling...");
             }
         }
 
