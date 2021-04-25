@@ -32,7 +32,6 @@ public class ThreadCrawlers {
 
         for (WebCrawler w : crawlers) {
             try {
-                System.out.println(java.lang.Thread.activeCount());
                 w.getThread().join();
             }
             catch (InterruptedException e) {

@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Date;
 import java.util.List;
 
@@ -17,12 +14,21 @@ public class addToRepository {
     private void seedURL(List<String> url) throws SQLException {
 
         for (String s : url) {
-            String query = "INSERT INTO repository (seed_url, is_crawled, date_and_time) VALUES(?,?,?)";
+
+            String query = "SELECT * FROM repository WHERE seed_url = ? LIMIT 1";
             PreparedStatement pstmt = conn.prepareStatement(query);
             pstmt.setString(1, s);
-            pstmt.setBoolean(2, false);
-            pstmt.setString(3, new Date().toString());
-            pstmt.executeUpdate();
+            ResultSet rs = pstmt.executeQuery();
+            if(!rs.next()){
+                String query2 = "INSERT INTO repository (seed_url, is_crawled, date_and_time) VALUES(?,?,?)";
+                PreparedStatement pstmt2 = conn.prepareStatement(query2);
+                pstmt2.setString(1, s);
+                pstmt2.setBoolean(2, false);
+                pstmt2.setString(3, new Date().toString());
+                pstmt2.executeUpdate();
+            } else{
+                System.out.println("This URL is already in the repository. Crawling...");
+            }
         }
 
         conn.close();
