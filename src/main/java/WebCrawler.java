@@ -130,15 +130,14 @@ public class WebCrawler implements Runnable {
                                 if (!visitedLinks.contains(next_link)) {
                                     request(level++, next_link);
                                 }
-                            } else{
-                                String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
-                                PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
-                                updateStmt.setBoolean(1, true);
-                                System.out.println(first_link);
-                                updateStmt.setString(2, first_link);
-                                updateStmt.executeUpdate();
                             }
                         }
+                        String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
+                        PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                        updateStmt.setBoolean(1, true);
+                        System.out.println(first_link);
+                        updateStmt.setString(2, first_link);
+                        updateStmt.executeUpdate();
                     }
                 }
         }
