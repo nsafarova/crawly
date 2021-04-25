@@ -48,6 +48,16 @@ public class WebCrawler implements Runnable {
             throwables.printStackTrace();
         }
 
+        ThreadCrawlers anotherUrl = new ThreadCrawlers();
+        String newUrl = anotherUrl.getNewUrl();
+        if(newUrl != null){
+            try {
+                new WebCrawler(newUrl, (int) ID);
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+
         try {
             conn.close();
         } catch (SQLException throwables) {

@@ -1,13 +1,14 @@
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
 public class ThreadCrawlers {
-    public static void main(String[] args) throws SQLException {
+    private static List<String> links = new ArrayList<>();
+    private static int numberOfThreads = 10;
+    private static int lastLinkIndex = numberOfThreads-1;
 
-        int numberOfThreads = 10;
+    public static void main(String[] args) throws SQLException {
 
         Scanner sc = new Scanner(System.in);
         List<String> urlList = new ArrayList<>();
@@ -21,7 +22,7 @@ public class ThreadCrawlers {
 
         new addToRepository(urlList);
 
-        List<String> links = getUrlsFromRepository();
+        links = getUrlsFromRepository();
 
         ArrayList<WebCrawler> crawlers = new ArrayList<>();
         if(links.size()<numberOfThreads) numberOfThreads = links.size();
@@ -31,12 +32,21 @@ public class ThreadCrawlers {
 
         for (WebCrawler w : crawlers) {
             try {
+                System.out.println(java.lang.Thread.activeCount());
                 w.getThread().join();
             }
             catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    public String getNewUrl() {
+        if(links.size()>numberOfThreads){
+            lastLinkIndex++;
+            return links.get(lastLinkIndex);
+        }
+        return null;
     }
 
     private static List<String> getUrlsFromRepository() throws SQLException {
