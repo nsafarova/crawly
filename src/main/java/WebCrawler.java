@@ -107,30 +107,30 @@ public class WebCrawler implements Runnable {
                     while(rs.next());
                 }
 
-                String USER_AGENT = "WhateverBot";
+                String USER_AGENT = "*";
                 URL urlObj = new URL(url);
                 String hostId = urlObj.getProtocol() + "://" + urlObj.getHost()
-                        + (urlObj.getPort() > -1 ? ":" + urlObj.getPort() : "");
+                        + (urlObj.getPort() > -1 ? ":" + urlObj.getPort() : "" + "/robots.txt");
                 Map<String, BaseRobotRules> robotsTxtRules = new HashMap<String, BaseRobotRules>();
                 BaseRobotRules rules = robotsTxtRules.get(hostId);
-                if (rules == null) {
-                    HttpClient client = HttpClient.newHttpClient();
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(hostId))
-                            .build();
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(hostId))
+                        .build();
 
-                    HttpResponse<String> response =
-                            client.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response =
+                        client.send(request, HttpResponse.BodyHandlers.ofString());
 
-                    if (response.statusCode() == 404) {
-                        rules = new SimpleRobotRules(SimpleRobotRules.RobotRulesMode.ALLOW_ALL);
-                    } else {
-                        SimpleRobotRulesParser robotParser = new SimpleRobotRulesParser();
-                        rules = robotParser.parseContent(hostId, response.body().getBytes(StandardCharsets.UTF_8),
-                                "text/plain", USER_AGENT);
-                    }
-                    robotsTxtRules.put(hostId, rules);
+                if (response.statusCode() == 404) {
+                    System.out.println("Rules are not found!");
+                    rules = new SimpleRobotRules(SimpleRobotRules.RobotRulesMode.ALLOW_ALL);
+                } else {
+                    System.out.println("Rules are found!");
+                    SimpleRobotRulesParser robotParser = new SimpleRobotRulesParser();
+                    rules = robotParser.parseContent(hostId, response.body().getBytes(StandardCharsets.UTF_8),
+                            "text/plain", USER_AGENT);
                 }
+                robotsTxtRules.put(hostId, rules);
                 boolean urlAllowed = rules.isAllowed(url);
 
                 System.out.println(urlAllowed + "   FHD97D69HGFDYH9DFGFHFHRF67Y56");
