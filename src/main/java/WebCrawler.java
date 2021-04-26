@@ -1,12 +1,6 @@
-import com.sun.net.httpserver.HttpContext;
 import crawlercommons.robots.BaseRobotRules;
 import crawlercommons.robots.SimpleRobotRules;
 import crawlercommons.robots.SimpleRobotRulesParser;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.BufferedHttpEntity;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.util.EntityUtils;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -112,7 +106,7 @@ public class WebCrawler implements Runnable {
                 String hostId = urlObj.getProtocol() + "://" + urlObj.getHost()
                         + (urlObj.getPort() > -1 ? ":" + urlObj.getPort() : "" + "/robots.txt");
                 Map<String, BaseRobotRules> robotsTxtRules = new HashMap<String, BaseRobotRules>();
-                BaseRobotRules rules = robotsTxtRules.get(hostId);
+                BaseRobotRules rules;
                 HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(hostId))
@@ -120,23 +114,26 @@ public class WebCrawler implements Runnable {
 
                 HttpResponse<String> response =
                         client.send(request, HttpResponse.BodyHandlers.ofString());
-
                 if (response.statusCode() == 404) {
-                    System.out.println("Rules are not found!");
                     rules = new SimpleRobotRules(SimpleRobotRules.RobotRulesMode.ALLOW_ALL);
                 } else {
-                    System.out.println("Rules are found!");
                     SimpleRobotRulesParser robotParser = new SimpleRobotRulesParser();
                     rules = robotParser.parseContent(hostId, response.body().getBytes(StandardCharsets.UTF_8),
                             "text/plain", USER_AGENT);
                 }
+
                 robotsTxtRules.put(hostId, rules);
                 boolean urlAllowed = rules.isAllowed(url);
 
-                System.out.println(urlAllowed + "   FHD97D69HGFDYH9DFGFHFHRF67Y56");
-
                 int level = 1;
-                request(level, url, newLink);
+                long urlCrawlDelay;
+                if(rules.getCrawlDelay()>0){
+                    urlCrawlDelay = rules.getCrawlDelay();
+                } else {
+                    urlCrawlDelay = 2;
+                }
+
+                request(level, url, newLink, urlCrawlDelay);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -171,7 +168,7 @@ public class WebCrawler implements Runnable {
         }
     }
 
-    private void request(int level, String url, boolean isNewLink) {
+    private void request(int level, String url, boolean isNewLink, long crawlDelay) {
         try {
                 Connection con = Jsoup.connect(url).ignoreContentType(true);
                 Document doc = con.get();
@@ -184,7 +181,9 @@ public class WebCrawler implements Runnable {
                     String crawlTime = new Date().toString();
                     printCrawler(ID, url, title, text, crawlTime);
                     visitedLinks.add(url);
-                    sleep(2); // niceness delay
+                    sleep(crawlDelay); // crawl delay obtained from robots.txt
+
+                    System.out.println(crawlDelay);
 
                     String query = "INSERT INTO records (url, website_title, crawled_text, record_date, crawled_text_size, url_depth) VALUES(?,?,?,?,?,?)";
                     PreparedStatement pstmt = conn.prepareStatement(query);
@@ -203,7 +202,7 @@ public class WebCrawler implements Runnable {
                         String next_link = link.absUrl("href");
                         if(next_link.length()>0) {
                             if (!visitedLinks.contains(next_link)) {
-                                request(level++, next_link, true);
+                                request(level++, next_link, true, crawlDelay);
                             }
                         }
                     }
@@ -219,7 +218,7 @@ public class WebCrawler implements Runnable {
         return thread;
     }
 
-    protected void sleep(int seconds) {
+    protected void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000L);
         }
