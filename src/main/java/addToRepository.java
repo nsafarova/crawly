@@ -2,14 +2,27 @@ import java.sql.*;
 import java.util.Date;
 import java.util.List;
 
+/*
+    This program is written for Senior Design Project named
+    "Development of Large-scale Web Crawling Platform" by
+    ADA University students Nigar Safarova, Nargiz Tahmazli,
+    Parvin Hajili, Shola Gulmaliyeva.
+
+    Copyright 2021 Crawly.
+ */
+
 public class addToRepository {
+
+    /*
+        Saving URLs into the repository, if they do not already exist.
+     */
 
     public addToRepository(List<String> url) throws SQLException {
         seedURL(url);
     }
 
     String connectionUrl = "jdbc:postgresql://localhost:5432/webcrawler";
-    Connection conn = DriverManager.getConnection(connectionUrl, "postgres", "1234");
+    Connection conn = DriverManager.getConnection(connectionUrl, "postgres", "");
 
     private void seedURL(List<String> url) throws SQLException {
 

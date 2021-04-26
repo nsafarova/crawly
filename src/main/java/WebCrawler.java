@@ -21,6 +21,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/*
+    This program is written for Senior Design Project named
+    "Development of Large-scale Web Crawling Platform" by
+    ADA University students Nigar Safarova, Nargiz Tahmazli,
+    Parvin Hajili, Shola Gulmaliyeva.
+
+    Copyright 2021 Crawly.
+ */
 
 public class WebCrawler implements Runnable {
     private static final int MAX_DEPTH = 3;
@@ -44,26 +52,31 @@ public class WebCrawler implements Runnable {
     @Override
     public void run() {
 
+        // Establishing connection with PostgreSQL database.
         try {
-            conn = DriverManager.getConnection(connectionUrl, "postgres", "1234");
+            conn = DriverManager.getConnection(connectionUrl, "postgres", "");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
 
+        // Passing URL to crawl() method.
         crawl(first_link);
 
+        // If crawl() method finalizes successfully, save URL as crawled in the repository.
         try {
             saveAsCrawled(first_link);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
 
+        // Closing connection with database.
         try {
             conn.close();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
 
+        // Getting a new URL from repository after current thread is done with crawling.
         ThreadCrawlers anotherUrl = new ThreadCrawlers();
         String newUrl = anotherUrl.getNewUrl();
         if(newUrl != null){
@@ -76,6 +89,7 @@ public class WebCrawler implements Runnable {
 
     }
 
+    // Setting PreparedStatement to update a URL in the repository as crawled.
     private void saveAsCrawled(String url) throws SQLException {
         String updateQuery = "UPDATE repository SET is_crawled=? WHERE seed_url=?";
         PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
@@ -86,11 +100,18 @@ public class WebCrawler implements Runnable {
 
     private void crawl(String url) {
             try {
+                /*
+                    Getting previous crawled content of a URL if crawling already started before.
+                 */
                 boolean newLink = true;
                 String query = "SELECT * FROM records where url LIKE ?";
                 PreparedStatement pstmt = conn.prepareStatement(query);
                 pstmt.setString(1,"%"+url+"%");
                 ResultSet rs = pstmt.executeQuery();
+                /*
+                    Printing previously crawled content;
+                    Marking previously crawled links as visited so that they do not get crawled again.
+                 */
                 if (rs.next() != false) {
                     newLink = false;
                     System.out.println("Found previous crawl records of '" + url +"'. Printing them...");
@@ -101,6 +122,9 @@ public class WebCrawler implements Runnable {
                     while(rs.next());
                 }
 
+                /*
+                    Parsing robots.txt of websites and obeying those rules.
+                 */
                 String USER_AGENT = "*";
                 URL urlObj = new URL(url);
                 String hostId = urlObj.getProtocol() + "://" + urlObj.getHost()
@@ -127,12 +151,17 @@ public class WebCrawler implements Runnable {
 
                 int level = 1;
                 long urlCrawlDelay;
-                if(rules.getCrawlDelay()>0){
+                /*
+                    Adding crawl delay if defined by website in robots.txt file.
+                    Otherwise, adding 2 seconds of niceness delay to each thread.
+                 */
+                if(rules.getCrawlDelay() > 2) {
                     urlCrawlDelay = rules.getCrawlDelay();
                 } else {
                     urlCrawlDelay = 2000;
                 }
 
+                // Start crawling if rules in the robots.txt file allow to.
                 if(urlAllowed) {
                     request(level, url, newLink, urlCrawlDelay);
                 } else{
@@ -144,12 +173,18 @@ public class WebCrawler implements Runnable {
             }
     }
 
+    /*
+        Printing Crawler ID and crawled content.
+     */
     private void printCrawler(Long id, String url, String title, String text, String date) {
         System.out.println("\n**Crawler " + id + ": Received webpage at " + url);
         System.out.println(title);
         System.out.println(text); // text extracting
         System.out.println(date);
 
+        /*
+            Save the crawled data as CSV file into the project folder.
+         */
         try {
 
             CopyManager cm = new CopyManager((BaseConnection) conn);
@@ -174,9 +209,13 @@ public class WebCrawler implements Runnable {
 
     private void request(int level, String url, boolean isNewLink, long crawlDelay) {
         try {
+                // Establishing Jsoup connection to parse the HTML of a website.
                 Connection con = Jsoup.connect(url).ignoreContentType(true);
                 Document doc = con.get();
 
+            /*
+                If crawled record is not crawled before, save it into the database.
+             */
             if(isNewLink) {
                 if (con.response().statusCode() == 200) {
                     String title = doc.title();
@@ -199,6 +238,11 @@ public class WebCrawler implements Runnable {
                     pstmt.executeUpdate();
                 }
             }
+
+            /*
+                If the depth of URL is less than or equal to maximum allowed depth length,
+                get next link. If next link is not crawled before, start crawling.
+             */
                 if (level <= MAX_DEPTH) {
                     for (Element link : doc.select("a[href]")) {
                         String next_link = link.absUrl("href");
@@ -216,10 +260,12 @@ public class WebCrawler implements Runnable {
             }
     }
 
+    // Method for returning threads to join them.
     public Thread getThread() {
         return thread;
     }
 
+    // Method for making threads sleep for the given period.
     protected void sleep(long milliSeconds) {
         try {
             Thread.sleep(milliSeconds);
