@@ -127,6 +127,7 @@ public class WebCrawler implements Runnable {
 
                 int level = 1;
                 long urlCrawlDelay;
+                System.out.println(rules.getCrawlDelay());
                 if(rules.getCrawlDelay()>0){
                     urlCrawlDelay = rules.getCrawlDelay();
                 } else {
@@ -182,8 +183,6 @@ public class WebCrawler implements Runnable {
                     printCrawler(ID, url, title, text, crawlTime);
                     visitedLinks.add(url);
                     sleep(crawlDelay); // crawl delay obtained from robots.txt
-
-                    System.out.println(crawlDelay);
 
                     String query = "INSERT INTO records (url, website_title, crawled_text, record_date, crawled_text_size, url_depth) VALUES(?,?,?,?,?,?)";
                     PreparedStatement pstmt = conn.prepareStatement(query);
