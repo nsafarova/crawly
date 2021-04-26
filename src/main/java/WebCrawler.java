@@ -131,7 +131,7 @@ public class WebCrawler implements Runnable {
                 if(rules.getCrawlDelay()>0){
                     urlCrawlDelay = rules.getCrawlDelay();
                 } else {
-                    urlCrawlDelay = 2;
+                    urlCrawlDelay = 2000;
                 }
 
                 request(level, url, newLink, urlCrawlDelay);
@@ -217,9 +217,9 @@ public class WebCrawler implements Runnable {
         return thread;
     }
 
-    protected void sleep(long seconds) {
+    protected void sleep(long milliSeconds) {
         try {
-            Thread.sleep(seconds * 1000L);
+            Thread.sleep(milliSeconds);
         }
         catch (InterruptedException e) {
             e.getMessage();
