@@ -1,3 +1,12 @@
+import com.sun.net.httpserver.HttpContext;
+import crawlercommons.robots.BaseRobotRules;
+import crawlercommons.robots.SimpleRobotRules;
+import crawlercommons.robots.SimpleRobotRulesParser;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.util.EntityUtils;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -6,10 +15,17 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
 import java.io.*;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class WebCrawler implements Runnable {
@@ -90,6 +106,34 @@ public class WebCrawler implements Runnable {
                     }
                     while(rs.next());
                 }
+
+                String USER_AGENT = "WhateverBot";
+                URL urlObj = new URL(url);
+                String hostId = urlObj.getProtocol() + "://" + urlObj.getHost()
+                        + (urlObj.getPort() > -1 ? ":" + urlObj.getPort() : "");
+                Map<String, BaseRobotRules> robotsTxtRules = new HashMap<String, BaseRobotRules>();
+                BaseRobotRules rules = robotsTxtRules.get(hostId);
+                if (rules == null) {
+                    HttpClient client = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(hostId))
+                            .build();
+
+                    HttpResponse<String> response =
+                            client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    if (response.statusCode() == 404) {
+                        rules = new SimpleRobotRules(SimpleRobotRules.RobotRulesMode.ALLOW_ALL);
+                    } else {
+                        SimpleRobotRulesParser robotParser = new SimpleRobotRulesParser();
+                        rules = robotParser.parseContent(hostId, response.body().getBytes(StandardCharsets.UTF_8),
+                                "text/plain", USER_AGENT);
+                    }
+                    robotsTxtRules.put(hostId, rules);
+                }
+                boolean urlAllowed = rules.isAllowed(url);
+
+                System.out.println(urlAllowed + "   FHD97D69HGFDYH9DFGFHFHRF67Y56");
 
                 int level = 1;
                 request(level, url, newLink);
