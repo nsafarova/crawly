@@ -7,10 +7,11 @@
     <groupId>ada.sdp</groupId>
     <artifactId>crawly</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>15</maven.compiler.source>
-        <maven.compiler.target>15</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -26,6 +27,7 @@
             <artifactId>postgresql</artifactId>
             <version>42.2.19</version>
         </dependency>
+
 
     </dependencies>
 
