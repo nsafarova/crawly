@@ -48,6 +48,12 @@ public class WebCrawler implements Runnable {
             throwables.printStackTrace();
         }
 
+        try {
+            conn.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
         ThreadCrawlers anotherUrl = new ThreadCrawlers();
         String newUrl = anotherUrl.getNewUrl();
         if(newUrl != null){
@@ -58,11 +64,6 @@ public class WebCrawler implements Runnable {
             }
         }
 
-        try {
-            conn.close();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
     }
 
     private void saveAsCrawled(String url) throws SQLException {
