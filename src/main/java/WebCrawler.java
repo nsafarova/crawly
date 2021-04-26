@@ -127,14 +127,17 @@ public class WebCrawler implements Runnable {
 
                 int level = 1;
                 long urlCrawlDelay;
-                System.out.println(rules.getCrawlDelay());
                 if(rules.getCrawlDelay()>0){
                     urlCrawlDelay = rules.getCrawlDelay();
                 } else {
                     urlCrawlDelay = 2000;
                 }
 
-                request(level, url, newLink, urlCrawlDelay);
+                if(urlAllowed) {
+                    request(level, url, newLink, urlCrawlDelay);
+                } else{
+                    System.out.println(url + " does not allow crawling their content.");
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
